@@ -1,5 +1,8 @@
 package com.leszko.calculator;
+
+import com.hazelcast.client.config.ClientConfig;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 
 public class CalculatorTest {
@@ -8,5 +11,14 @@ public class CalculatorTest {
      @Test
      public void testSum() {
           assertEquals(5, calculator.sum(2, 3));
+     }
+
+     @Test
+     public void testHazelcastClientConfig() {
+          CalculatorApplication application = new CalculatorApplication();
+          ClientConfig config = application.hazelcastClientConfig();
+
+          assertEquals("hazelcast",
+               config.getNetworkConfig().getAddresses().get(0));
      }
 }
