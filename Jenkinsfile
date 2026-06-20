@@ -78,4 +78,3 @@ pipeline {
         }
     }
 }
-'n// trigger after branch correction
