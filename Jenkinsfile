@@ -4,11 +4,8 @@ pipeline {
     }
 
     stages {
-        stage('Checkout code and prepare environment') {
+        stage('Prepare environment') {
             steps {
-                git url: 'https://github.com/0-Moose-0/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git',
-                    branch: 'master'
-
                 sh '''
                     cd Chapter08/sample1
                     chmod +x gradlew
@@ -16,39 +13,69 @@ pipeline {
             }
         }
 
-        stage('Run unit tests and coverage') {
+        stage('Run unit tests') {
             steps {
                 sh '''
                     cd Chapter08/sample1
                     ./gradlew test
-                    ./gradlew jacocoTestCoverageVerification
-                    ./gradlew jacocoTestReport
                 '''
             }
         }
 
-        stage('Run Checkstyle') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh '''
-                        cd Chapter08/sample1
-                        ./gradlew checkstyleTest
-                    '''
-                }
+        stage('Run code coverage') {
+            when {
+                changeset "**/*.java"
             }
 
-            post {
-                always {
-                    publishHTML(target: [
-                        reportDir: 'Chapter08/sample1/build/reports/checkstyle',
-                        reportFiles: 'test.html',
-                        reportName: 'jacoco checkstyle',
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true
-                    ])
-                }
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    ./gradlew jacocoTestCoverageVerification
+                    ./gradlew jacocoTestReport
+                '''
+
+                publishHTML(target: [
+                    reportDir: 'Chapter08/sample1/build/reports/jacoco/test/html',
+                    reportFiles: 'index.html',
+                    reportName: 'JaCoCo Report',
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true
+                ])
+            }
+        }
+
+        stage('Run Checkstyle') {
+            when {
+                changeset "**/*.java"
+            }
+
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    ./gradlew checkstyleTest
+                '''
+
+                publishHTML(target: [
+                    reportDir: 'Chapter08/sample1/build/reports/checkstyle',
+                    reportFiles: 'test.html',
+                    reportName: 'Checkstyle Report',
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true
+                ])
             }
         }
     }
+
+    post {
+        success {
+            echo 'pipeline ran perfectly'
+        }
+
+        failure {
+            echo 'pipeline failure'
+        }
+    }
 }
+```
