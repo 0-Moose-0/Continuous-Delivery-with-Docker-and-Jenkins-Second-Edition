@@ -1,0 +1,84 @@
+pipeline {
+    agent {
+        label 'docker-agent'
+    }
+
+    stages {
+        stage('Validate branch name') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        echo 'Master branch detected'
+                    } else if (env.BRANCH_NAME.contains('feature')) {
+                        echo "Feature branch detected: ${env.BRANCH_NAME}"
+                    } else {
+                        error "Invalid branch name: ${env.BRANCH_NAME}. Branch must be master or contain feature."
+                    }
+                }
+            }
+        }
+
+        stage('Prepare environment') {
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    chmod +x gradlew
+                '''
+            }
+        }
+
+        stage('Run unit tests') {
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    ./gradlew test
+                '''
+            }
+        }
+
+        stage('Run Checkstyle') {
+            when {
+                expression {
+                    return env.BRANCH_NAME == 'master' || env.BRANCH_NAME.contains('feature')
+                }
+            }
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    ./gradlew checkstyleTest
+                '''
+            }
+        }
+
+        stage('Run code coverage') {
+            when {
+                branch 'master'
+            }
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    ./gradlew jacocoTestCoverageVerification
+                    ./gradlew jacocoTestReport
+                '''
+
+                publishHTML(target: [
+                    reportDir: 'Chapter08/sample1/build/reports/jacoco/test/html',
+                    reportFiles: 'index.html',
+                    reportName: 'JaCoCo Report',
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true
+                ])
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'pipeline ran perfectly'
+        }
+        failure {
+            echo 'pipeline failure'
+        }
+    }
+}
