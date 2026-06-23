@@ -61,3 +61,4 @@ is a passionate software developer, trainer, and conference speaker living in Kr
 
 ### Adding additional lines to test **.java functionality
 This is to test
+Exercise 6 invalid branch test.
