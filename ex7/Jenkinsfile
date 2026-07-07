@@ -1,0 +1,95 @@
+pipeline {
+    agent {
+        label 'docker-agent'
+    }
+
+    stages {
+        stage('Validate branch') {
+            steps {
+                script {
+                    echo "BRANCH_NAME=${env.BRANCH_NAME}"
+                    echo "CHANGE_ID=${env.CHANGE_ID}"
+
+                    if (env.BRANCH_NAME == 'master') {
+                        echo 'Main branch detected'
+                    } else {
+                        echo 'Non-main branch detected'
+                    }
+                }
+            }
+        }
+
+        stage('Prepare environment') {
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    chmod +x gradlew
+                '''
+            }
+        }
+
+        stage('Run unit tests') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        cd Chapter08/sample1
+                        ./gradlew test
+                    '''
+                }
+            }
+        }
+
+        stage('Run Checkstyle') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        cd Chapter08/sample1
+                        ./gradlew checkstyleTest
+                    '''
+                }
+            }
+        }
+
+        stage('Run code coverage') {
+            when {
+                branch 'master'
+            }
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh '''
+                        cd Chapter08/sample1
+                        ./gradlew jacocoTestCoverageVerification
+                    '''
+                }
+            }
+        }
+
+        stage('Create JaCoCo report') {
+            steps {
+                sh '''
+                    cd Chapter08/sample1
+                    ./gradlew jacocoTestReport || true
+                '''
+
+                publishHTML(target: [
+                    reportDir: 'Chapter08/sample1/build/reports/jacoco/test/html',
+                    reportFiles: 'index.html',
+                    reportName: 'JaCoCo Report',
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true
+                ])
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'tests pass!'
+        }
+
+        failure {
+            echo 'tests fail!'
+        }
+    }
+}
