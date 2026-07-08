@@ -5,7 +5,9 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-
+/**
+ * Unit tests for the Calculator application and its configuration.
+ */
 public class CalculatorTest {
      private Calculator calculator = new Calculator();
 
